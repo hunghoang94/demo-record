@@ -1,44 +1,66 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableHighlight } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableHighlight, PermissionsAndroid  } from 'react-native';
 import styles from './styles';
 import CallDetectorManager from 'react-native-call-detection';
 import AudioRecord from 'react-native-audio-record';
+import * as Contacts from 'react-native-contacts';
 
 export default Recorder = () => {
-  const recordOptions = {
-    sampleRate: 16000,
-    channels: 1,
-    bitsPerSample: 16,
-    audioSource: 6,
-    wavFile: 'phone-record.wav'
-  };
-  AudioRecord.init(recordOptions);
-
-  let callDetector;
+  let [callDetector, setCallDetector] = useState(undefined);
   let [isStart, setIsStart] = useState(false);
+
+  const initAudioRecord = async () => {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      {
+        title: 'Contacts',
+        message: 'Ứng dụng này cần quyền ghi âm',
+        buttonNegative: 'Hủy',
+        buttonPositive: 'Chấp nhận',
+      },
+    );
+
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      const recordOptions = {
+        sampleRate: 16000,
+        channels: 1,
+        bitsPerSample: 16,
+        audioSource: 6,
+        wavFile: 'phone-record.wav'
+      };
+      AudioRecord.init(recordOptions);
+    }
+  };
+
+
+  useEffect(() => {
+    initAudioRecord();
+  }, []);
 
   const onPress = () => {
     if (isStart) {
-      callDetector && callDetector.dispose();
+      if (callDetector) {
+          callDetector.dispose();
+      }
     } else {
-      callDetector = new CallDetectorManager((event, phoneNumber) => {
+      setCallDetector(new CallDetectorManager((event, phoneNumber) => {
           console.log(event);
 
           if (event === 'Disconnected') {
-            // AudioRecord.stop();
+            AudioRecord.stop();
           }
           else if (event === 'Connected') {
-            // AudioRecord.start();
+            AudioRecord.start();
           }
           else if (event === 'Offhook') {
-            // AudioRecord.start();
+            AudioRecord.start();
           }
         }, false, () => {
         }, {
           title: 'Phone State Permission',
           message: 'This app needs access to your phone state in order to react and/or to adapt to incoming calls.',
         },
-      );
+      ));
     }
     setIsStart(!isStart);
   };
