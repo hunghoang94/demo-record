@@ -12,6 +12,12 @@ target 'demoRecord' do
 
   pod 'RNSound', :path => '../node_modules/react-native-sound'
 
+  pod 'RNAudioRecord', :path => '../node_modules/react-native-audio-record'
+
+  pod 'RNAudioRecorderPlayer', :path => '../node_modules/react-native-audio-recorder-player'
+
+  pod 'RNFS', :path => '../node_modules/react-native-fs'
+
   target 'demoRecordTests' do
     inherit! :complete
     # Pods for testing

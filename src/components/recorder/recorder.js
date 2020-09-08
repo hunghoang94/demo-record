@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableHighlight, PermissionsAndroid  } from 'react-native';
+import { View, Text, TouchableHighlight, PermissionsAndroid, Platform  } from 'react-native';
 import styles from './styles';
 import CallDetectorManager from 'react-native-call-detection';
 import AudioRecord from 'react-native-audio-record';
 import * as Contacts from 'react-native-contacts';
-
 import AudioRecorderPlayer,  {
-AVEncoderAudioQualityIOSType,
-AVEncodingOption,
-AudioEncoderAndroidType,
-AudioSet,
-AudioSourceAndroidType,
+  AVEncoderAudioQualityIOSType,
+  AVEncodingOption,
+  AudioEncoderAndroidType,
+  AudioSet,
+  AudioSourceAndroidType,
 } from 'react-native-audio-recorder-player';
+const RNFS = require('react-native-fs');
+import moment from 'moment';
 
 export default Recorder = () => {
   let [callDetector, setCallDetector] = useState(undefined);
@@ -30,14 +31,16 @@ export default Recorder = () => {
     );
 
     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-      // const recordOptions = {
-      //   sampleRate: 16000,
-      //   channels: 1,
-      //   bitsPerSample: 16,
-      //   audioSource: 6,
-      //   wavFile: 'phone-record.wav'
-      // };
-      // AudioRecord.init(recordOptions);
+      RNFS.readDir('sdcard') // On Android, use "RNFS.DocumentDirectoryPath" (MainBundlePath is not defined)
+        .then((result) => {
+          if (result.length) {
+            const recordFiles = result.filter(item => item.name.includes('demo-record-') && item.name.endsWith('\.mp4'));
+            console.log(recordFiles)
+          }
+        })
+        .catch((err) => {
+          console.log(err.message, err.code);
+        });
       setAudioRecorderPlayer(new AudioRecorderPlayer());
     }
   };
@@ -47,53 +50,55 @@ export default Recorder = () => {
     initAudioRecord();
   }, []);
 
+  const triggerRecord = async () => {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+    );
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      if (!isStart) {
+        const path = Platform.select({
+          ios: `demo-record-${moment(new Date()).format('DD-MM-YYYY hh:mm:ss')}.m4a`,
+          android: `sdcard/demo-record-${moment(new Date()).format('DD-MM-YYYY hh:mm:ss')}.mp4`,
+        });
+        const audioSet = {
+          AudioEncoderAndroid: AudioEncoderAndroidType.AAC,
+          AudioSourceAndroid: AudioSourceAndroidType.MIC,
+          AVEncoderAudioQualityKeyIOS: AVEncoderAudioQualityIOSType.high,
+          AVNumberOfChannelsKeyIOS: 2,
+          AVFormatIDKeyIOS: AVEncodingOption.aac,
+        };
+
+        await audioRecorderPlayer.startRecorder(path, false, audioSet);
+      } else {
+        await audioRecorderPlayer.stopRecorder();
+      }
+    }
+  };
+
   const onPress = async () => {
-    // if (isStart) {
-    //   if (callDetector) {
-    //       callDetector.dispose();
-    //   }
-    // } else {
-    //   setCallDetector(new CallDetectorManager((event, phoneNumber) => {
-    //       console.log(event);
-    //
-    //       if (event === 'Disconnected') {
-    //         AudioRecord.stop();
-    //       }
-    //       else if (event === 'Connected') {
-    //         AudioRecord.start();
-    //       }
-    //       else if (event === 'Offhook') {
-    //         AudioRecord.start();
-    //       }
-    //     }, false, () => {
-    //     }, {
-    //       title: 'Phone State Permission',
-    //       message: 'This app needs access to your phone state in order to react and/or to adapt to incoming calls.',
-    //     },
-    //   ));
-    // }
-    if (!isStart) {
-      // AudioRecord.start();
-      const path = 'hello.m4a';
-      const audioSet = {
-        AudioEncoderAndroid: AudioEncoderAndroidType.AAC,
-        AudioSourceAndroid: AudioSourceAndroidType.MIC,
-        AVEncoderAudioQualityKeyIOS: AVEncoderAudioQualityIOSType.high,
-        AVNumberOfChannelsKeyIOS: 2,
-        AVFormatIDKeyIOS: AVEncodingOption.aac,
-      };
-      const uri = await audioRecorderPlayer.startRecorder(path, audioSet);
-      audioRecorderPlayer.addRecordBackListener((e) => {
-        console.log(e)
-      })
-      console.log(uri)
+    if (isStart) {
+      if (callDetector) {
+          callDetector.dispose();
+      }
     } else {
-      // AudioRecord.stop().then((res) => {
-      //   console.log(res)
-      // });
-      const result = await audioRecorderPlayer.stopRecorder();
-      audioRecorderPlayer.removeRecordBackListener();
-      console.log(result);
+      setCallDetector(new CallDetectorManager((event, phoneNumber) => {
+          console.log(event);
+
+          if (event === 'Disconnected') {
+            triggerRecord();
+          }
+          else if (event === 'Connected') {
+            triggerRecord();
+          }
+          else if (event === 'Offhook') {
+            triggerRecord();
+          }
+        }, false, () => {
+        }, {
+          title: 'Phone State Permission',
+          message: 'This app needs access to your phone state in order to react and/or to adapt to incoming calls.',
+        },
+      ));
     }
     setIsStart(!isStart);
   };
