@@ -12,17 +12,26 @@ import {
   StatusBar,
 } from 'react-native';
 import ContactList from './src/components/contact-list/contact-list';
-import Recorder from './src/components/recorder/recorder';
+import RecordList from './src/components/record-list/record-list';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+
+const Stack = createStackNavigator();
 
 const App: () => React$Node = () => {
   return (
-    <>
-      <StatusBar barStyle="dark-content"/>
-      <SafeAreaView>
-        <ContactList/>
-        <Recorder/>
-      </SafeAreaView>
-    </>
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen
+          name="ContactList"
+          component={ContactList}
+        />
+        <Stack.Screen
+          name="RecordList"
+          component={RecordList}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 

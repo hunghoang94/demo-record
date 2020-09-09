@@ -6,6 +6,7 @@ export default styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 60
   },
   recordButton: {
     height: 100,

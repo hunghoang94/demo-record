@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList  } from 'react-native';
+import { View, Text, FlatList, Button  } from 'react-native';
 import styles from './styles';
 import { PermissionsAndroid } from 'react-native';
 import * as Contacts from 'react-native-contacts';
 import Contact from '../contact/contact';
+import Recorder from '../recorder/recorder';
 
-export default ContactList = () => {
+export default ContactList = (props) => {
   const [contacts, setContacts] = useState([]);
 
   const getContactList = async () => {
@@ -47,6 +48,17 @@ export default ContactList = () => {
           data={contacts}
           renderItem={Contact}
           keyExtractor={item => item.id}
+        />
+      </View>
+
+      <Recorder/>
+
+      <View>
+        <Button
+          title="Go record list"
+          onPress={() =>
+            props.navigation.navigate('RecordList')
+          }
         />
       </View>
     </View>

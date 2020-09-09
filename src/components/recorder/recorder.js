@@ -2,16 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableHighlight, PermissionsAndroid, Platform  } from 'react-native';
 import styles from './styles';
 import CallDetectorManager from 'react-native-call-detection';
-import AudioRecord from 'react-native-audio-record';
 import * as Contacts from 'react-native-contacts';
 import AudioRecorderPlayer,  {
   AVEncoderAudioQualityIOSType,
   AVEncodingOption,
   AudioEncoderAndroidType,
-  AudioSet,
   AudioSourceAndroidType,
 } from 'react-native-audio-recorder-player';
-const RNFS = require('react-native-fs');
 import moment from 'moment';
 
 export default Recorder = () => {
@@ -31,16 +28,6 @@ export default Recorder = () => {
     );
 
     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-      RNFS.readDir('sdcard') // On Android, use "RNFS.DocumentDirectoryPath" (MainBundlePath is not defined)
-        .then((result) => {
-          if (result.length) {
-            const recordFiles = result.filter(item => item.name.includes('demo-record-') && item.name.endsWith('\.mp4'));
-            console.log(recordFiles)
-          }
-        })
-        .catch((err) => {
-          console.log(err.message, err.code);
-        });
       setAudioRecorderPlayer(new AudioRecorderPlayer());
     }
   };
@@ -50,15 +37,17 @@ export default Recorder = () => {
     initAudioRecord();
   }, []);
 
-  const triggerRecord = async () => {
+  const triggerRecord = async (status) => {
     const granted = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
     );
     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-      if (!isStart) {
+      if (status === 'start') {
+        const date = new Date();
+
         const path = Platform.select({
-          ios: `demo-record-${moment(new Date()).format('DD-MM-YYYY hh:mm:ss')}.m4a`,
-          android: `sdcard/demo-record-${moment(new Date()).format('DD-MM-YYYY hh:mm:ss')}.mp4`,
+          ios: `record_${moment(date).format('DD MM YYYY')} ${moment(date).format('hh')}h ${moment(date).format('mm')}m ${moment(date).format('ss')}s.m4a`,
+          android: `sdcard/record_${moment(date).format('DD MM YYYY')} ${moment(date).format('hh')}h ${moment(date).format('mm')}m ${moment(date).format('ss')}s.mp4`,
         });
         const audioSet = {
           AudioEncoderAndroid: AudioEncoderAndroidType.AAC,
@@ -85,13 +74,13 @@ export default Recorder = () => {
           console.log(event);
 
           if (event === 'Disconnected') {
-            triggerRecord();
+            triggerRecord('stop');
           }
           else if (event === 'Connected') {
-            triggerRecord();
+            triggerRecord('start');
           }
           else if (event === 'Offhook') {
-            triggerRecord();
+            triggerRecord('start');
           }
         }, false, () => {
         }, {
